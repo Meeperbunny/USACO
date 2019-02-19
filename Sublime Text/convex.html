@@ -1,0 +1,145 @@
+<html>
+<canvas id = "mainCanvas" width = "600" height = "600">
+<script>
+class Node {
+	constructor(x, y) {
+		this.angle = 0;
+		this.x = x;
+		this.y = y;
+	}
+	subtract(other) {
+		var ret = new Node(this.x - other.x, this.y - other.y);
+		return ret;
+	}
+}
+function comparator(a, b) {
+	return a.angle < b.angle;
+}
+function insertionSort(pointSet) {
+	var i = 1;
+	while(i < pointSet.length) {
+		var j = i;
+		while(j > 0 && !comparator(pointSet[j - 1], pointSet[j])) {
+			var temp = pointSet[j];
+			pointSet[j] = pointSet[j - 1];
+			pointSet[j - 1] = temp;
+			j--;
+		}
+		i++;
+	}
+}
+function printArr(n) {
+	console.log("PRINTING ARR:")
+	for(var i = 0; i < n.length; i++) {
+		console.log(arr[i].angle);
+	}
+}
+function zCross(a, b) {
+	return a.x * b.y - a.y * b.x;
+}
+function getSquareDist(a, b) {
+	return sqrt((b.x - a.x) * (b.x - a.x) + (b.y - a.y) * (b.y - a.y));
+}
+function drawLine(a, b) {
+	ctx.beginPath();
+	ctx.moveTo(a.x, a.y);
+	ctx.lineTo(b.x, b.y);
+	ctx.stroke();
+}
+var arr = [];
+var hull = [];
+var c = document.getElementById("mainCanvas");
+var ctx = c.getContext("2d");
+
+window.onload = function() {
+	document.addEventListener("mousedown", onClick);
+	console.log("STARTED");
+}
+function onClick(event) {
+	var mouseX = event.offsetX;
+	var mouseY = event.offsetY;
+	if (mouseX > 600 || mouseY > 600) {
+		console.warn("Out of canvas bounds.");
+		return;
+	}
+	var newNode = new Node(mouseX, mouseY);
+	arr.push(newNode);
+	console.log(arr.length);
+
+	if (arr.length >= 3) {
+		//3 is min for polygon
+		makeConvex(arr);
+	}
+
+	//draw points
+	for(var i = 0; i < arr.length; i++) {
+		ctx.beginPath();
+		ctx.arc(arr[i].x, arr[i].y, 4, 0, 2 * Math.PI);
+		ctx.fill();
+		ctx.stroke();
+	}
+}
+function makeConvex() {
+	var aX = 0, aY = 0;
+	for(var i = 0; i < arr.length; i++) {
+		aX += arr[i].x; aY += arr[i].y;
+	}
+	aX /= arr.length; aY /= arr.length;
+	console.log("Center X:", aX);
+	console.log("Center Y:", aY);
+	for (var i = 0; i < arr.length; i++) {
+		arr[i].angle = 2 * Math.PI + Math.atan2(arr[i].y - aY, arr[i].x - aX);
+		if (arr[i].angle >= 2 * Math.PI) arr[i].angle -= 2 * Math.PI;
+	}
+	printArr(arr);
+	insertionSort(arr);
+	console.log("AFTER SORT");
+	printArr(arr);
+	hull = [];
+	hull.length = arr.length;
+	hull[0] = arr[0];
+	hull[1] = arr[1];
+	var hullPos = 2;
+	for(var i = 2; i < arr.length; i++) {
+		var curr = arr[i];
+		hull[hullPos] = arr[i];
+		while (hullPos > 1 && zCross(hull[hullPos - 2].subtract(hull[hullPos - 1]), hull[hullPos].subtract(hull[hullPos - 1])) > 0) {
+			hullPos--;
+			hull[hullPos] = curr;
+		}
+		hullPos++;
+	}
+	var done = false;
+	hullPos--;
+	var hullStart = 0;
+	while(!done) {
+		done = true;
+		var curr = hull[hullPos];
+		var start = hull[hullStart];
+		if (hullPos - hullStart >= 2 && zCross(hull[hullPos - 1].subtract(curr), hull[hullStart].subtract(curr)) > 0) {
+			hullPos--;
+			curr = hull[hullPos];
+			done = false;
+		}
+		if (hullPos - hullStart >= 2 && zCross(curr.subtract(start), hull[hullStart + 1].subtract(start)) > 0) {
+			hullStart++;
+			done = false;
+		}
+	}
+	hullPos++;
+	arr = [];
+	for(var i = 0; i < hull.length; i++) {
+		if (hull[i] != undefined) {
+			arr.push(hull[i]);
+		}
+	}
+	ctx.fillStyle = "white";
+	ctx.fillRect(0, 0, c.width, c.height);
+	ctx.fillStyle = "black";
+	drawLine(hull[hullStart], hull[hullPos - 1])
+	for (var i = hullStart + 1; i < hullPos; i++) {
+		drawLine(hull[i], hull[i - 1]);
+	}
+}
+</script>
+</html>
