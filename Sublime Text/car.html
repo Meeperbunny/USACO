@@ -1,0 +1,155 @@
+<html>
+<canvas height = "600" width = "600" id = "gc"></canvas>
+<script>
+
+	var keyPress = [0, 0, 0];
+
+
+	class Car {
+		constructor(x, y) {
+			this.x = x;
+			this.y = y;
+			this.xV = 0;
+			this.yV = 0;
+			this.w = 20;
+			this.h = 10;
+			this.angle = 0;
+			this.scalar = 20;
+			this.angleSpeed = 2.2;
+			this.dragConstant = 0.99;
+			this.staticCut = 0.01;
+		}
+
+		phys() {
+			//add onto velocity
+			var xScale = Math.cos(this.angle / 180 * Math.PI);
+			var yScale = Math.sin(this.angle / 180 * Math.PI);
+			var thrustOn = keyPress[0];
+			this.angle += (keyPress[2] - keyPress[1]) * this.angleSpeed;
+			this.xV *= this.dragConstant;
+			this.yV *= this.dragConstant;
+			this.xV += xScale * thrustOn;
+			this.yV += yScale * thrustOn;
+			this.x += this.xV * (1 / this.scalar);
+			this.y += this.yV * (1 / this.scalar);
+		}
+
+		draw() {
+			cc.translate(this.x, this.y);
+			cc.rotate(this.angle / 180 * Math.PI);
+			cc.fillRect(-this.w / 2, -this.h / 2, this.w, this.h);
+			cc.rotate(-this.angle / 180 * Math.PI);
+			cc.translate(-this.x, -this.y);
+		}
+	}
+
+	class Track {
+		constructor(pointCount, ring, variance) {
+			this.pointCount = pointCount;
+			this.dotCount = 10;
+			this.points = [];
+			this.dotSet = [];
+			this.maxTurn = 5;
+			this.variance = variance;
+			this.ringDist = ring / 100;
+			var middle = [c.width / 2, c.height / 2];2
+			for(var i = 0; i < pointCount; i++) {
+				this.points.push([Math.cos(2 * Math.PI * i / pointCount) * middle[0] * this.ringDist + ((Math.random() - 0.5) * this.variance) + middle[0], Math.sin(2 * Math.PI * i / pointCount) * middle[1] * this.ringDist + ((Math.random() - 0.5) * this.variance) + middle[1]]);
+			}
+			for(var index = 0; index < pointCount; index++) {
+				var yChange = this.points[(index + 1) % this.pointCount][1] - this.points[index][1];
+				var xChange = this.points[(index + 1) % this.pointCount][0] - this.points[index][0];
+				var startAngle = Math.atan2(this.points[index][1] - this.points[(index + this.pointCount - 1) % this.pointCount][1], this.points[index][0] - this.points[(index + this.pointCount - 1) % this.pointCount][0]);
+				var endAngle = Math.atan2(this.points[(index + 1) % this.pointCount][1] - this.points[index][1], this.points[(index + 1) % this.pointCount][0] - this.points[index][0]);
+				var angleDiff = endAngle - startAngle;
+				while (angleDiff < -(Math.PI / 2)) {
+					angleDiff += Math.PI;
+				}
+				if (angleDiff > Math.PI) {
+					angleDiff -= Math.PI;
+				}
+				console.log(angleDiff);
+
+				for(var i = 1; i <= this.dotCount; i++) {
+					this.dotSet.push([this.points[index][0] + (i / (this.dotCount + 1)) * xChange, this.points[index][1] + (i / (this.dotCount + 1)) * yChange]);
+				}
+			}
+		}
+
+		drawTrack(pointColor, dotColor) {
+			var rSize = 10;
+			var dSize = 5;
+			cc.fillStyle = pointColor;
+			for(var i = 0; i < this.pointCount; i++) {
+				cc.fillRect(this.points[i][0] - rSize / 2, this.points[i][1] - rSize / 2, rSize, rSize);
+				//drawLine(this.points[i][0], this.points[i][1], this.points[(i + 1) % this.pointCount][0], this.points[(i + 1) % this.pointCount][1]);
+			}
+			cc.fillStyle = dotColor;
+			for(var i = 0; i < this.dotSet.length; i++) {
+				cc.fillRect(this.dotSet[i][0] - dSize / 2, this.dotSet[i][1] - dSize / 2, dSize, dSize);
+			}
+		}
+	}
+
+	var c = document.getElementById("gc");
+	var cc = c.getContext("2d");
+	var track = new Track(10, 80, 100);
+	var car = new Car(100, 100);
+
+	document.addEventListener("keydown", keyDown);
+	document.addEventListener("keyup", keyUp);
+
+
+	function simulation() {
+		car.phys();
+		cc.fillStyle = "white";
+		cc.fillRect(0, 0, c.width, c.height);
+		track.drawTrack("black", "gray");
+		cc.fillStyle = "red";
+		car.draw();
+
+	}
+
+	window.onload = function() {
+		setInterval(simulation, 10);
+	}
+
+	function drawLine(x1, y1, x2, y2, w) {
+		cc.lineWidth = w;
+		cc.beginPath();
+		cc.moveTo(x1, y1);
+		cc.lineTo(x2, y2);
+		cc.stroke();
+	}
+
+	function keyDown(e) {
+		if (e.which == 32) {
+			keyPress[0] = true;
+		}
+		else if(e.which == 65 || e.which == 37) {
+			console.log("LEFT");
+			keyPress[1] = true;
+		} 
+		else if (e.which == 68 || e.which == 39) {
+			console.log("RIGHT");
+			keyPress[2] = true;
+		} 
+	}
+
+	function keyUp(e) {
+		if (e.which == 32) {
+			keyPress[0] = false;
+		}
+		else if(e.which == 65 || e.which == 37) {
+			console.log("LEFT");
+			keyPress[1] = false;
+		} 
+		else if (e.which == 68 || e.which == 39) {
+			console.log("RIGHT");
+			keyPress[2] = false;
+		} 
+	}
+
+
+</script>
+</html>
